@@ -1,0 +1,22 @@
+[
+  {
+    "usage": {
+      "primary": {
+        "resetsAt": "2099-01-01T00:00:00Z",
+        "usedPercent": 98.97171872875691,
+        "resetDescription": "3,120 / 5,000 credits left"
+      },
+      "secondary": null,
+      "extraRateWindows": [
+        {
+          "title": "Rewards",
+          "window": {
+            "usedPercent": 97.88330245858691,
+            "resetDescription": "120 / 1,000 credits left"
+          },
+          "id": "rewards"
+        }
+      ]
+    }
+  }
+]

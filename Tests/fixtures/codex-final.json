@@ -1,0 +1,16 @@
+[
+  {
+    "usage": {
+      "primary": {
+        "resetsAt": "2099-01-01T00:00:00Z",
+        "windowMinutes": 300,
+        "usedPercent": 5
+      },
+      "secondary": {
+        "resetsAt": "2099-01-01T00:00:00Z",
+        "windowMinutes": 10080,
+        "usedPercent": 63
+      }
+    }
+  }
+]

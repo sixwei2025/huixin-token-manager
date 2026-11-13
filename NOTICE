@@ -1,0 +1,8 @@
+汇芯 Token 管家 — 中文界面与适配代码 Copyright (c) 2026 袁六伟 · 台州汇芯，MIT。
+内置读取引擎：CodexBar v0.84.0，Copyright (c) 2026 Peter Steinberger，MIT。
+来源：https://github.com/steipete/CodexBar
+源码提交：5bebf9a05e68059eae11d5031c7239f1aa1d49ef。
+本版重新实现 SwiftUI 界面，通过内置 CodexBarCLI JSON 接口复用上游读取逻辑。
+二进制来源为上游官方签名发布包，获取脚本校验官方固定 SHA-256。
+引擎源码可通过上游同版本 tag 完整获取；本仓库公开界面、适配、构建和打包源码。
+不宣称完全原创读取引擎，不移除上游作者、许可或引擎名称。

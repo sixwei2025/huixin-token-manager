@@ -1,0 +1,54 @@
+[
+  {
+    "usage": {
+      "primary": {
+        "windowMinutes": 300,
+        "usedPercent": 50.63713192939758,
+        "resetsAt": "2099-01-01T00:00:00Z"
+      },
+      "secondary": {
+        "windowMinutes": 300,
+        "usedPercent": 100,
+        "resetsAt": "2099-01-01T00:00:00Z"
+      },
+      "extraRateWindows": [
+        {
+          "title": "Gemini 5-hour",
+          "window": {
+            "windowMinutes": 300,
+            "resetsAt": "2099-01-01T00:00:00Z",
+            "usedPercent": 50.63713192939758
+          },
+          "id": "antigravity-quota-summary-gemini-5h"
+        },
+        {
+          "title": "Gemini weekly",
+          "window": {
+            "windowMinutes": 10080,
+            "resetsAt": "2099-01-01T00:00:00Z",
+            "usedPercent": 12.663018703460693
+          },
+          "id": "antigravity-quota-summary-gemini-weekly"
+        },
+        {
+          "title": "Claude/GPT 5-hour",
+          "window": {
+            "windowMinutes": 300,
+            "resetsAt": "2099-01-01T00:00:00Z",
+            "usedPercent": 100
+          },
+          "id": "antigravity-quota-summary-3p-5h"
+        },
+        {
+          "title": "Claude/GPT weekly",
+          "window": {
+            "windowMinutes": 10080,
+            "resetsAt": "2099-01-01T00:00:00Z",
+            "usedPercent": 51.99865698814392
+          },
+          "id": "antigravity-quota-summary-3p-weekly"
+        }
+      ]
+    }
+  }
+]

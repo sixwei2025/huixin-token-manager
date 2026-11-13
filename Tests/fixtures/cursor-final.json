@@ -1,0 +1,27 @@
+[
+  {
+    "usage": {
+      "primary": {
+        "usedPercent": 1.3755725190839694,
+        "windowMinutes": 43200,
+        "resetsAt": "2099-01-01T00:00:00Z"
+      },
+      "secondary": {
+        "usedPercent": 0,
+        "windowMinutes": 43200,
+        "resetsAt": "2099-01-01T00:00:00Z"
+      },
+      "extraRateWindows": [
+        {
+          "id": "cursor-grok-bot",
+          "title": "Grok Bot",
+          "window": {
+            "resetsAt": "2099-01-01T00:00:00Z",
+            "usedPercent": 100,
+            "windowMinutes": 10080
+          }
+        }
+      ]
+    }
+  }
+]
