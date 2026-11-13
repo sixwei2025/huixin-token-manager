@@ -2,3 +2,5 @@ build/
 vendor/
 .DS_Store
 *.dSYM/
+Bridge/.build/
+Bridge/.swiftpm/

@@ -6,3 +6,5 @@
 二进制来源为上游官方签名发布包，获取脚本校验官方固定 SHA-256。
 引擎源码可通过上游同版本 tag 完整获取；本仓库公开界面、适配、构建和打包源码。
 不宣称完全原创读取引擎，不移除上游作者、许可或引擎名称。
+浏览器读取桥接程序从同一固定提交的 CodexBarCore 编译，使用标准输入/输出与界面通信，不监听网络端口；保留其临时签名应用的内存会话策略。
+已对固定版本 BrowserCookieAccessGate.withAccessFailureObserver 加入单函数 @_optimize(none) 编译兼容标注，修复本机发行构建触发的 TaskLocal 崩溃；未取消观察器或修改授权、拒绝冷却和凭据缓存规则。补丁由 scripts/prepare-bridge.py 可重复应用。

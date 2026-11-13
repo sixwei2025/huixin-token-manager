@@ -24,16 +24,18 @@ import SwiftUI
         guard !connecting.contains(id) else { return }
         connecting.insert(id)
         Task {
-            let success = await Task.detached { connectBrowser(id) }.value
+            let result = await Task.detached { connectBrowser(id) }.value
             connecting.remove(id)
-            if !success, let index = cards.firstIndex(where: { $0.id == id }) {
-                cards[index].issue = "连接未完成，请检查网页登录和系统授权"
+            if let index = cards.firstIndex(where: { $0.id == id }) {
+                if let data = result.data, let card = try? decodeCard(id: id, data: data) {
+                    cards[index] = card
+                } else { cards[index].issue = result.error ?? "连接未完成，请检查网页登录和系统授权" }
             }
-            if success { refresh() }
+            if connecting.isEmpty { refresh() }
         }
     }
-    func start() {
-        refresh()
+    func start(refreshImmediately: Bool = true) {
+        if refreshImmediately { refresh() }
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
@@ -220,6 +222,11 @@ struct Dashboard: View {
         popover.contentSize = NSSize(width: 820, height: 588)
         popover.behavior = .transient
         let positionKey = "NSStatusItem Preferred Position HuixinTokenManager"
+        if CommandLine.arguments.contains("--align-with-skills"), let position = positionBesideSkills() {
+            UserDefaults.standard.set(position, forKey: positionKey)
+            print("Menu grouping position: \(position)")
+            fflush(stdout)
+        }
         if UserDefaults.standard.object(forKey: positionKey) == nil {
             UserDefaults.standard.set(0, forKey: positionKey)
         }
@@ -249,7 +256,11 @@ struct Dashboard: View {
                 }
                 return card
             }
-        } else { store.start() }
+        } else {
+            let connectOnStart = CommandLine.arguments.contains("--connect-browsers")
+            store.start(refreshImmediately: !connectOnStart)
+            if connectOnStart { store.connect("workbuddy"); store.connect("cursor") }
+        }
         if CommandLine.arguments.contains("--show") { showWindow() }
         else if CommandLine.arguments.contains("--menu-check") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.showMenu() }
@@ -267,6 +278,23 @@ struct Dashboard: View {
             }
         }
     }
+    func positionBesideSkills() -> Double? {
+        guard let buddy = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "cn.huixin.skillsmanager" }),
+              let windows = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
+        for window in windows {
+            guard (window[kCGWindowOwnerPID as String] as? Int) == Int(buddy.processIdentifier),
+                  let layer = window[kCGWindowLayer as String] as? Int, layer > 0,
+                  let bounds = window[kCGWindowBounds as String] as? [String: Double],
+                  let x = bounds["X"], let width = bounds["Width"], let height = bounds["Height"],
+                  height >= 18, height <= 40, width >= 18, width <= 80,
+                  let screen = NSScreen.screens.first(where: { x >= $0.frame.minX && x < $0.frame.maxX }) else { continue }
+            // Preferred positions are distances from the screen's right edge. Insert immediately
+            // to the left of the existing Skills Manager item, without changing the other app.
+            return max(0, screen.frame.maxX - x + 1)
+        }
+        return nil
+    }
+    func applicationWillTerminate(_ notification: Notification) { BridgeWorker.shared.shutdown() }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showMenu()

@@ -81,7 +81,7 @@ npx skills add sixwei2025/huixin-token-manager
 
 ### 自行构建
 
-需要 Apple 芯片 Mac 和 Xcode 命令行工具。运行 `bash scripts/build.sh`，脚本会从 CodexBar 官方 v0.84.0 发布包取得引擎并校验固定 SHA-256，然后编译、临时签名、运行样本检查，生成 `build/汇芯 Token 管家.app` 与 ZIP。源码构建需要访问 GitHub；正常安装不需要下载额外引擎。
+需要 Apple 芯片 Mac 和含 Swift 6.2+ 的 Xcode 命令行工具（运行安装包仍支持 macOS 14+）。运行 `bash scripts/build.sh`，脚本会从 CodexBar 官方 v0.84.0 发布包取得引擎并校验固定 SHA-256，并从同一固定提交编译持续运行的浏览器读取桥接程序，然后编译界面、临时签名、运行样本检查，生成 `build/汇芯 Token 管家.app` 与 ZIP。源码构建需要访问 GitHub；正常安装不需要下载额外引擎。
 
 ## 三、数据怎样读取
 
@@ -93,6 +93,8 @@ npx skills add sixwei2025/huixin-token-manager
 | 2 内置引擎 | CodexBarCLI 官方 v0.84.0 固定版本 | 引擎随安装包提供；构建时检查 SHA-256 |
 | 3 字段适配 | 区分周期、模型与独立额度 | 剩余百分比 = 100 − 已用百分比；限制在 0–100% |
 | 4 中文展示 | 四卡横向布局、积分、恢复时间 | 超时终止子进程；失败标记旧数据 |
+
+临时签名应用按上游保护机制，将浏览器会话保存在读取进程的内存中。WorkBuddy 与 Grok Bot 的连接和自动刷新复用同一个读取进程，不再每次启动新程序而丢失连接。会话不写入明文文件；完全退出或升级后可能需要重新连接浏览器。
 
 **来源致谢：** 额度读取来自 [Peter Steinberger 的 CodexBar](https://github.com/steipete/CodexBar)，MIT。汇芯重新开发了中文原生界面、精简卡片、真实字段适配和独立打包；没有把上游读取能力说成完全原创。上游源码版本、二进制校验值和本次修改范围见 [NOTICE](NOTICE) 与 [许可证目录](licenses)。
 
@@ -106,6 +108,8 @@ npx skills add sixwei2025/huixin-token-manager
 
 **“0%”和“读取失败”有什么区别？** 0% 表示来源确实返回额度耗尽。读取失败会显示通用错误；已有旧数值会明确标记“上次数据”，不会推算恢复后的新额度。
 
+**菜单栏没有图标怎么办？** v1.0.2 已补齐标准 macOS 应用包信息。请解压并拖入“应用程序”后正常打开，不直接运行包内的程序文件。macOS 26 及以上若隐藏图标，请打开“系统设置→菜单栏→允许在菜单栏显示”，检查“汇芯 Token 管家”已开启。菜单栏空间不足时仍由 macOS 控制显示位置。
+
 **数据会发给汇芯吗？** 本版没有汇芯账号体系、汇芯服务器、遥测或集中收集额度功能。内置引擎会访问对应工具服务以取得本人的额度。缓存仅包含标准化额度、更新时间和通用错误。浏览器会话、登录文件和钥匙串访问由上游读取逻辑及系统权限管理；不要在公开 issue 上传完整原始响应或登录文件。
 
 **安装 Skill 就能打开应用吗？** 不能。Skill 是可选的安装与排查指引；桌面应用仍需下载 ZIP 或从源码构建。
@@ -115,6 +119,7 @@ npx skills add sixwei2025/huixin-token-manager
 ```text
 huixin-token-manager/
 ├── Sources/                  # SwiftUI 界面与额度适配
+├── Bridge/                   # 固定版本 CodexBarCore 的常驻读取程序
 ├── scripts/build.sh          # 编译、签名、检查、ZIP
 ├── scripts/fetch-engine.sh   # 固定上游版本及 SHA-256 校验
 ├── Tests/fixtures/           # 无账号信息的演示/校验样本

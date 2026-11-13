@@ -94,6 +94,7 @@ func decodeCard(id: String, data: Data) throws -> QuotaCard {
 
 struct FetchResult: Sendable { let data: Data?; let error: String? }
 func fetchProvider(_ provider: String) -> FetchResult {
+    if ["cursor", "workbuddy"].contains(provider) { return BridgeWorker.shared.request(provider: provider, connect: false) }
     let engine = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/CodexBarCLI").path
     guard FileManager.default.isExecutableFile(atPath: engine) else { return FetchResult(data: nil, error: "内置读取引擎缺失，请重新安装汇芯 Token 管家") }
     let process = Process()
@@ -123,19 +124,6 @@ func fetchProvider(_ provider: String) -> FetchResult {
 }
 
 // Only invoked by the user's explicit Connect Browser button; automatic refresh never opens an authorization prompt.
-func connectBrowser(_ provider: String) -> Bool {
-    guard ["cursor", "workbuddy"].contains(provider) else { return false }
-    let process = Process()
-    process.executableURL = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/CodexBarCLI")
-    process.arguments = ["cookie", "refresh", "--provider", provider, "--allow-keychain-prompt"]
-    process.standardOutput = FileHandle.nullDevice
-    process.standardError = FileHandle.nullDevice
-    do { try process.run() } catch { return false }
-    let watchdog = DispatchWorkItem { if process.isRunning { process.terminate() } }
-    let kill = DispatchWorkItem { if process.isRunning { Darwin.kill(process.processIdentifier, SIGKILL) } }
-    DispatchQueue.global().asyncAfter(deadline: .now() + 120, execute: watchdog)
-    DispatchQueue.global().asyncAfter(deadline: .now() + 123, execute: kill)
-    process.waitUntilExit()
-    watchdog.cancel(); kill.cancel()
-    return process.terminationStatus == 0
+func connectBrowser(_ provider: String) -> FetchResult {
+    BridgeWorker.shared.request(provider: provider, connect: true)
 }
