@@ -15,10 +15,11 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>汇芯 Token 管家</string>
 <key>CFBundleDisplayName</key><string>汇芯 Token 管家</string>
 <key>CFBundleExecutable</key><string>HuixinQuotaManager</string>
-<key>CFBundleShortVersionString</key><string>1.0.0</string>
-<key>CFBundleVersion</key><string>3</string>
+<key>CFBundleShortVersionString</key><string>1.0.1</string>
+<key>CFBundleVersion</key><string>4</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>
+<key>LSMultipleInstancesProhibited</key><true/>
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
@@ -38,5 +39,5 @@ codesign --force --sign - "$APP"
 codesign --verify --strict "$APP"
 "$APP/Contents/MacOS/HuixinQuotaManager" --engine-check
 "$APP/Contents/MacOS/HuixinQuotaManager" --self-test "$ROOT/Tests/fixtures"
-ditto -c -k --sequesterRsrc --keepParent "$APP" "$ROOT/build/huixin-token-manager-v1.0.0-macos-arm64.zip"
+ditto -c -k --sequesterRsrc --keepParent "$APP" "$ROOT/build/huixin-token-manager-v1.0.1-macos-arm64.zip"
 echo "$APP"

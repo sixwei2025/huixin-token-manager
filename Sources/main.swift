@@ -219,10 +219,19 @@ struct Dashboard: View {
         popover.contentViewController = controller
         popover.contentSize = NSSize(width: 820, height: 588)
         popover.behavior = .transient
-        status = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        let positionKey = "NSStatusItem Preferred Position HuixinTokenManager"
+        if UserDefaults.standard.object(forKey: positionKey) == nil {
+            UserDefaults.standard.set(0, forKey: positionKey)
+        }
+        status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        status.autosaveName = "HuixinTokenManager"
+        status.isVisible = true
         if let button = status.button {
             button.image = NSImage(systemSymbolName: "chart.bar.xaxis", accessibilityDescription: "汇芯 Token 管家")
-            button.title = " Token"
+            button.image?.isTemplate = true
+            button.image?.size = NSSize(width: 18, height: 18)
+            button.toolTip = "汇芯 Token 管家"
+            button.setAccessibilityLabel("汇芯 Token 管家")
             button.target = self; button.action = #selector(toggle)
         }
         if CommandLine.arguments.contains("--demo") {
@@ -242,6 +251,9 @@ struct Dashboard: View {
             }
         } else { store.start() }
         if CommandLine.arguments.contains("--show") { showWindow() }
+        else if CommandLine.arguments.contains("--menu-check") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.showMenu() }
+        }
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.indices.contains(i + 1) {
             let path = CommandLine.arguments[i + 1]
             DispatchQueue.main.asyncAfter(deadline: .now() + (CommandLine.arguments.contains("--demo") ? 2 : 48)) { [self] in
@@ -255,10 +267,29 @@ struct Dashboard: View {
             }
         }
     }
-    @objc func toggle() {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showMenu()
+        return false
+    }
+    func showMenu() {
         guard let button = status.button else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        if !popover.isShown {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+        popover.contentViewController?.view.window?.makeKey()
+        if CommandLine.arguments.contains("--menu-check") {
+            let rect = button.window?.frame ?? .zero
+            let screen = button.window?.screen?.frame ?? .zero
+            print("Menu visible=\(status.isVisible) popover=\(popover.isShown) anchor=\(rect) screen=\(screen)")
+            fflush(stdout)
+        }
+    }
+    @objc func toggle() {
+        guard status.button != nil else { return }
         if popover.isShown { popover.performClose(nil) }
-        else { popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY); popover.contentViewController?.view.window?.makeKey(); if !CommandLine.arguments.contains("--demo") { store.refresh() } }
+        else { showMenu(); if !CommandLine.arguments.contains("--demo") { store.refresh() } }
     }
     func showWindow() {
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 588), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
