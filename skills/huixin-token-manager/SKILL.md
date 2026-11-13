@@ -1,6 +1,7 @@
 ---
 name: huixin-token-manager
 description: 帮助安装、构建和排查汇芯 Token 管家；用于用户要求在 Apple 芯片 Mac 上集中查看 Codex、Antigravity、Grok Bot、WorkBuddy 的剩余额度、恢复时间和积分。
+version: 1.0.3
 author: 袁六伟 · 台州汇芯（公众号/视频号：袁六伟）
 ---
 
