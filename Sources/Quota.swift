@@ -24,6 +24,11 @@ struct Meter: Identifiable, Codable {
     let amount: String?
     var forecast: QuotaForecast? = nil
 }
+enum ConnectionIssueKind: String, Codable, Sendable {
+    case keychainPermission
+    case sessionExpired
+    case generic
+}
 struct QuotaCard: Identifiable, Codable {
     let id: String
     var name: String
@@ -32,6 +37,7 @@ struct QuotaCard: Identifiable, Codable {
     var totalCredits: String?
     var updated: Date?
     var issue: String?
+    var connectionIssue: ConnectionIssueKind? = nil
 }
 func parseDate(_ value: String?) -> Date? {
     guard let value else { return nil }
@@ -106,6 +112,7 @@ struct FetchResult: Sendable {
     let data: Data?
     let error: String?
     var needsConnection: Bool = false
+    var connectionIssue: ConnectionIssueKind? = nil
 }
 func fetchProvider(_ provider: String, connect: Bool = false) -> FetchResult {
     BridgeWorker.request(provider: provider, connect: connect)

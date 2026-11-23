@@ -5,7 +5,7 @@
 
 **额度可视化 · 用量预测 · 自动同步**
 
-当前版本：`v1.1.0` · 2026-11-23 · Apple Silicon / macOS 14+
+当前版本：`v1.1.2` · 2026-11-24 · Apple Silicon / macOS 14+
 
 [下载安装包](https://github.com/sixwei2025/huixin-token-manager/releases/latest) · [更新记录](CHANGELOG.md) · [MIT 许可](LICENSE)
 

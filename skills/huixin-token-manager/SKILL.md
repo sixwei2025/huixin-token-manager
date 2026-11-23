@@ -2,7 +2,7 @@
 name: huixin-token-manager
 display_name: 汇芯 token 管家安装助手
 description: 安装、构建和排查汇芯 token 管家桌面应用，查看 Codex、Antigravity、WorkBuddy 的剩余额度、恢复时间和用量预测。
-version: 1.1.0
+version: 1.1.2
 author: 袁六伟 · 台州汇芯（公众号/视频号：袁六伟）
 ---
 

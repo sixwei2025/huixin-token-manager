@@ -26,8 +26,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>汇芯 token 管家</string>
 <key>CFBundleDisplayName</key><string>汇芯 token 管家</string>
 <key>CFBundleExecutable</key><string>HuixinQuotaManager</string>
-<key>CFBundleShortVersionString</key><string>1.1.0</string>
-<key>CFBundleVersion</key><string>7</string>
+<key>CFBundleShortVersionString</key><string>1.1.2</string>
+<key>CFBundleVersion</key><string>8</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>
 <key>LSMultipleInstancesProhibited</key><true/>
@@ -46,7 +46,7 @@ for size in 16 32 128 256 512; do
     sips -z "$double" "$double" "$ROOT/build/icon.png" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
-SIGN_ID="${HUIXIN_CODESIGN_IDENTITY:--}"
+SIGN_ID="${HUIXIN_CODESIGN_IDENTITY:-auto}"
 if [[ "$SIGN_ID" == "auto" ]]; then
     DETECTED_ID="$(security find-identity -v -p codesigning 2>/dev/null | sed -n 's/.*"\(Apple Development: [^"]*\)".*/\1/p' | head -n 1 || true)"
     SIGN_ID="${DETECTED_ID:--}"
@@ -71,5 +71,5 @@ PYTEST
 "$APP/Contents/MacOS/HuixinQuotaManager" --self-test "$ROOT/Tests/fixtures"
 xcrun swiftc -O -swift-version 5 "$ROOT/Sources/Quota.swift" "$ROOT/Sources/Forecast.swift" "$ROOT/Sources/RefreshPolicy.swift" "$ROOT/Sources/BridgeWorker.swift" "$ROOT/Tests/Runtime/PolicyForecastTests.swift" -o "$ROOT/build/policy-forecast-tests"
 "$ROOT/build/policy-forecast-tests"
-python3 "$ROOT/scripts/package-app.py" "$APP" "$ROOT/build/huixin-token-manager-v1.1.0-macos-arm64.zip"
+python3 "$ROOT/scripts/package-app.py" "$APP" "$ROOT/build/huixin-token-manager-v1.1.2-macos-arm64.zip"
 echo "$APP"

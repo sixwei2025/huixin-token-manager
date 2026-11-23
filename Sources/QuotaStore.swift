@@ -43,8 +43,11 @@ import Network
                 forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
             ) { [weak self] _ in
                 Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 2_500_000_000)
+                    try? await Task.sleep(nanoseconds: 4_000_000_000)
                     self?.refresh(force: true)
+                    // Second gentle pass after Wi-Fi/Keychain fully settle post-wake.
+                    try? await Task.sleep(nanoseconds: 8_000_000_000)
+                    self?.retryUnhealthySilently()
                 }
             }
             networkMonitor.pathUpdateHandler = { [weak self] path in
@@ -53,7 +56,10 @@ import Network
                     guard let self else { return }
                     let restored = available && !self.networkWasAvailable
                     self.networkWasAvailable = available
-                    if restored { self.refresh(force: true) }
+                    if restored {
+                        try? await Task.sleep(nanoseconds: 1_500_000_000)
+                        self.refresh(force: true)
+                    }
                 }
             }
             networkMonitor.start(queue: DispatchQueue(label: "cn.huixin.quota.network"))
@@ -61,11 +67,45 @@ import Network
     }
     func refresh(force: Bool = false) {
         guard !CommandLine.arguments.contains("--demo") else { return }
+        let now = Date()
         for provider in providers {
             let id = provider.id
-            if RefreshPolicy.isDue(now: Date(), lastAttempt: attempts[id], failures: failures[id, default: 0],
-                blocked: blocked.contains(id), inFlight: loading.contains(id), force: force,
-                lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled) { launch(id, connect: false) }
+            let isBlocked = blocked.contains(id)
+            if RefreshPolicy.isDue(now: now, lastAttempt: attempts[id], failures: failures[id, default: 0],
+                blocked: isBlocked, inFlight: loading.contains(id), force: force,
+                lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled) {
+                launch(id, connect: false)
+            } else if RefreshPolicy.isRecoveryDue(now: now, lastAttempt: attempts[id],
+                blocked: isBlocked, inFlight: loading.contains(id), force: force) {
+                // Silent no-UI probe: recovers automatically once Keychain unlocks or Chrome renews the cookie.
+                launch(id, connect: false)
+            }
+        }
+    }
+    func onPopoverOpen() {
+        guard !CommandLine.arguments.contains("--demo") else { return }
+        let now = Date()
+        for provider in providers {
+            let id = provider.id
+            guard !loading.contains(id) else { continue }
+            let hasIssue = cards.first(where: { $0.id == id })?.issue != nil
+            if (blocked.contains(id) || hasIssue),
+               let last = attempts[id], now.timeIntervalSince(last) >= 10 {
+                launch(id, connect: false)
+            }
+        }
+    }
+    private func retryUnhealthySilently() {
+        guard !CommandLine.arguments.contains("--demo") else { return }
+        let now = Date()
+        for provider in providers {
+            let id = provider.id
+            guard !loading.contains(id) else { continue }
+            let hasIssue = cards.first(where: { $0.id == id })?.issue != nil
+            if (blocked.contains(id) || hasIssue),
+               attempts[id].map({ now.timeIntervalSince($0) >= 6 }) ?? true {
+                launch(id, connect: false)
+            }
         }
     }
     func manualRefresh() {
@@ -91,7 +131,9 @@ import Network
             defer { loading.remove(id); connecting.remove(id) }
             guard let index = cards.firstIndex(where: { $0.id == id }) else { return }
             var success = false
-            if let data = result.data, let card = try? decodeCard(id: id, data: data) {
+            if let data = result.data, var card = try? decodeCard(id: id, data: data) {
+                card.issue = nil
+                card.connectionIssue = nil
                 cards[index] = trends.apply(to: card)
                 failures[id] = 0
                 blocked.remove(id)
@@ -99,6 +141,7 @@ import Network
             } else {
                 failures[id, default: 0] += 1
                 cards[index].issue = result.error ?? "服务暂时没有返回额度，稍后自动重试"
+                cards[index].connectionIssue = result.connectionIssue
                 if result.needsConnection { blocked.insert(id) }
             }
             persist()

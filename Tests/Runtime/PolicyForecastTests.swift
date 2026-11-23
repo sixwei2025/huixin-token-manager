@@ -9,6 +9,17 @@ import Foundation
         precondition(!RefreshPolicy.isDue(now: now, lastAttempt: now.addingTimeInterval(-20), failures: 0, blocked: false, inFlight: false, force: false, lowPower: false))
         precondition(RefreshPolicy.delay(failures: 5, lowPower: false) == 300)
         precondition(RefreshPolicy.delay(failures: 0, lowPower: true) == 60)
+        precondition(!RefreshPolicy.isRecoveryDue(now: now, lastAttempt: now.addingTimeInterval(-60), blocked: true, inFlight: false, force: false))
+        precondition(RefreshPolicy.isRecoveryDue(now: now, lastAttempt: now.addingTimeInterval(-181), blocked: true, inFlight: false, force: false))
+        precondition(RefreshPolicy.isRecoveryDue(now: now, lastAttempt: now.addingTimeInterval(-10), blocked: true, inFlight: false, force: true))
+        precondition(!RefreshPolicy.isRecoveryDue(now: now, lastAttempt: now.addingTimeInterval(-3), blocked: true, inFlight: false, force: true))
+        precondition(!RefreshPolicy.isRecoveryDue(now: now, lastAttempt: nil, blocked: false, inFlight: false, force: true))
+        let tlsSessionErr = BridgeWorker.classifyError(provider: "workbuddy", error: "URLSession task failed: TLS session interrupted")
+        precondition(!tlsSessionErr.needsConnection && tlsSessionErr.kind == nil)
+        let keychainErr = BridgeWorker.classifyError(provider: "workbuddy", error: "Chrome cookie access needs Keychain permission — use Refresh...")
+        precondition(keychainErr.needsConnection && keychainErr.kind == .keychainPermission)
+        let expiredErr = BridgeWorker.classifyError(provider: "workbuddy", error: "WorkBuddy session expired. Sign in at www.workbuddy.cn")
+        precondition(expiredErr.needsConnection && expiredErr.kind == .sessionExpired)
         let samples = [TrendPoint(date: now.addingTimeInterval(-1200), remaining: 90, reset: nil, capacity: nil),
                        TrendPoint(date: now.addingTimeInterval(-600), remaining: 85, reset: nil, capacity: nil),
                        TrendPoint(date: now, remaining: 80, reset: nil, capacity: nil)]

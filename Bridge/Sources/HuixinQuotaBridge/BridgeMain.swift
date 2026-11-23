@@ -38,19 +38,30 @@ struct Response: Encodable {
         let contribution = descriptor.settingsSection.credentialContribution(context: ProviderCredentialSettingsContext(config: providerConfig, account: nil))
         let settings = contribution.map { ProviderSettingsSnapshot(contributions: [$0]) }
         let context = ProviderFetchContext(runtime: request.provider == "workbuddy" ? .app : .cli, sourceMode: request.provider == "workbuddy" ? .web : .auto, includeCredits: false,
-            includeOptionalUsage: true, webTimeout: 12, webDebugDumpHTML: false, verbose: false,
+            includeOptionalUsage: true, webTimeout: request.provider == "workbuddy" ? 25 : 12, webDebugDumpHTML: false, verbose: false,
             env: env, settings: settings, fetcher: UsageFetcher(), claudeFetcher: ClaudeUsageFetcher(browserDetection: BrowserDetection()),
             browserDetection: BrowserDetection(), persistsCLISessions: true)
-        let outcome: ProviderFetchOutcome
-        if request.connect {
-            outcome = await BrowserCookieAccessGate.withExplicitRetry(bypassingCooldown: true) {
-                await ProviderInteractionContext.$current.withValue(.userInitiated) {
-                    await descriptor.fetchOutcome(context: context)
+        func runOnce() async -> ProviderFetchOutcome {
+            if request.connect {
+                return await BrowserCookieAccessGate.withExplicitRetry(bypassingCooldown: true) {
+                    await ProviderInteractionContext.$current.withValue(.userInitiated) {
+                        await descriptor.fetchOutcome(context: context)
+                    }
                 }
             }
-        } else {
-            outcome = await ProviderInteractionContext.$current.withValue(.background) {
+            return await ProviderInteractionContext.$current.withValue(.background) {
                 await descriptor.fetchOutcome(context: context)
+            }
+        }
+        var outcome = await runOnce()
+        // Right after wake/unlock, Keychain or network may be momentarily unavailable; one short silent retry
+        // prevents a transient wake race from marking WorkBuddy offline.
+        if !request.connect, request.provider == "workbuddy", case .failure(let firstError) = outcome.result {
+            let lower = firstError.localizedDescription.lowercased()
+            let definitiveAuth = ["session expired", "no workbuddy session cookies", "cookies are disabled", "http 401", "keychain permission"].contains { lower.contains($0) }
+            if !definitiveAuth {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                outcome = await runOnce()
             }
         }
         switch outcome.result {

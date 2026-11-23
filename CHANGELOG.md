@@ -1,5 +1,12 @@
 # 更新日志
 
+## v1.1.2 · 2026-11-24
+
+- 根治 WorkBuddy 掉线与假死问题：解除 `blocked` 永久锁死，改用零弹窗静默自愈探测（后台每 3 分钟、唤醒/联网恢复及打开面板时静默复检 `connect=false`），休眠唤醒钥匙串瞬时锁定或 Chrome 续期后可自动恢复连线。
+- 精确区分「钥匙串权限未永久放行」与「Chrome 官网登录已过期」两类状态，移除过宽的 `session` 关键词误判（避免 `URLSession` / `TLS session` 等网络抖动把 WorkBuddy 误标为掉线）；卡片底部提供明确指引与一键动作，引导在钥匙串弹窗点击「始终允许」。
+- `BridgeMain` 将 WorkBuddy 网页超时提升至 25 秒（外层常驻进程超时 45 秒），并在唤醒/瞬时失败时执行一次 1.5 秒静默重试；新增脱敏诊断日志 `bridge.log`（自动限长 64 KB）。
+- `scripts/build.sh` 默认 `HUIXIN_CODESIGN_IDENTITY=auto`（有本机 Apple Development 证书时自动签名以持久保存 Keychain 会话与 ACL，无证书环境自动回退临时签名）。
+
 ## v1.1.1 · 2026-11-23
 
 - 修复 WorkBuddy 频繁掉线问题：将 WorkBuddy 后台同步超时从 20 秒放宽至 40 秒（高于上游 30 秒网页超时），避免网络波动时外部强杀常驻进程导致内存会话丢失。

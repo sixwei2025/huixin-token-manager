@@ -39,6 +39,7 @@ struct Dashboard: View {
         }
         .padding(22).frame(width: 960, height: 520)
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear { store.onPopoverOpen() }
         .sheet(isPresented: $details) {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
@@ -54,7 +55,7 @@ struct Dashboard: View {
                     Button(store.connecting.contains("workbuddy") ? "等待本人授权…" : "连接 WorkBuddy") { store.connect("workbuddy") }
                         .disabled(store.loading.contains("workbuddy"))
                 }
-                Text("首次连接可能出现系统钥匙串提示，请本人确认。自动同步不弹授权框；授权失效后停止自动重试，其他服务继续更新。")
+                Text("首次连接出现「Chrome Safe Storage」系统钥匙串弹窗时，请点击「始终允许」（不要只点「允许」）。授权后重启或后台刷新将永久自动保活；自动同步绝不弹框，会话恢复后自动重新连线。")
                     .foregroundStyle(.secondary)
                 Divider()
                 Text("预测参考真实周期内的平均用量，结合近期消耗记录；额度恢复或充值后重新计算。预测是估计值，会随使用强度变化。")
@@ -124,12 +125,23 @@ struct ProviderPanel: View {
             }.frame(maxWidth: .infinity, minHeight: 64, alignment: .leading).padding(11)
                 .background(tint.opacity(0.055), in: RoundedRectangle(cornerRadius: 10))
             if connecting {
-                Text("等待本人完成系统授权…").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text("等待本人授权（请在钥匙串弹窗点「始终允许」）…").font(.system(size: 10)).foregroundStyle(.secondary)
             } else if blocked && card.id == "workbuddy" {
                 HStack(spacing: 8) {
-                    Text("会话未连接").font(.system(size: 10)).foregroundStyle(.orange)
-                    Spacer()
-                    Button("连接 WorkBuddy", action: connect).controlSize(.small).disabled(loading)
+                    if card.connectionIssue == .keychainPermission {
+                        Text("需钥匙串「始终允许」").font(.system(size: 10)).foregroundStyle(.orange).lineLimit(1)
+                        Spacer()
+                        Button("授权连接", action: connect).controlSize(.small).disabled(loading)
+                    } else if card.connectionIssue == .sessionExpired {
+                        Text("Chrome 登录已过期").font(.system(size: 10)).foregroundStyle(.orange).lineLimit(1)
+                        Spacer()
+                        Link("打开官网", destination: URL(string: "https://www.workbuddy.cn/profile/plans-usage")!).font(.system(size: 10))
+                        Button("重新连接", action: connect).controlSize(.small).disabled(loading)
+                    } else {
+                        Text("会话未连接").font(.system(size: 10)).foregroundStyle(.orange)
+                        Spacer()
+                        Button("连接 WorkBuddy", action: connect).controlSize(.small).disabled(loading)
+                    }
                 }
             } else {
                 HStack {
