@@ -1,45 +1,397 @@
-from PIL import Image, ImageDraw, ImageFont
+#!/usr/bin/env python3
+"""Render high-DPI README showcase hero-banner.jpg using headless Chrome + 01-app-demo.png."""
+
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'assets/showcase'
-FONT='/System/Library/Fonts/STHeiti Medium.ttc'
-def font(n): return ImageFont.truetype(FONT,n)
-RED='#C8102E'; INK='#18181B'; MUTED='#66666D'
-def text(d,xy,s,n=24,color=INK):d.text(xy,s,font=font(n),fill=color)
-def base(h):
- im=Image.new('RGB',(1600,h),'#F8F7F5');d=ImageDraw.Draw(im)
- d.rounded_rectangle((48,42,312,86),radius=20,fill=RED);text(d,(68,51),'汇芯 · 开源工具',23,'white')
- return im,d
-im,d=base(700)
-text(d,(60,133),'汇芯 Token 管家',66)
-text(d,(62,228),'还剩多少，一眼就知道',43,RED)
-text(d,(64,307),'Codex · Antigravity · Grok Bot · WorkBuddy',25)
-text(d,(64,359),'横向四卡 / 真实周期 / 总积分与可用积分',24,MUTED)
-for i,(a,b) in enumerate([('01','安装应用'),('02','本机登录'),('03','连接来源'),('04','查看额度')]):
- x=64+i*205;d.rounded_rectangle((x,420,x+183,488),radius=15,fill='white',outline='#E3DDDA');text(d,(x+15,439),a+' '+b,21)
-text(d,(64,527),'macOS 14+ · Apple 芯片 · 无需另装 CodexBar',25,RED)
-d.rounded_rectangle((953,118,1547,575),radius=24,fill=INK)
-text(d,(985,148),'更适合电脑的横向看板',29,'white')
-for i,(name,value,cycle) in enumerate([('Codex','85%','5 小时 · 每周'),('Antigravity','78%','区分模型与周期'),('Grok Bot','45%','独立额度'),('WorkBuddy','3,120','可用积分 / 总积分')]):
- x=980+(i%2)*280;y=210+(i//2)*153
- d.rounded_rectangle((x,y,x+256,y+131),radius=17,fill='#2D2D34')
- text(d,(x+15,y+16),name,24,'white');text(d,(x+15,y+50),value,33,'#F1ABB7');text(d,(x+15,y+94),cycle,17,'#D3CED0')
-text(d,(989,538),'数值仅作演示，读取本人账号',19,'#D3CED0')
-d.rectangle((0,620,1600,700),fill=INK)
-text(d,(62,642),'袁六伟 · 台州汇芯  |  公众号 / 视频号：袁六伟',23,'white')
-text(d,(900,646),'学员 7000+ 人 · 服务商单客户 100+ 家',21,'#D0C8CA')
-im.save(OUT/'hero-banner.jpg',quality=94)
-im,d=base(680)
-text(d,(60,123),'从本人账号，到一眼可见的剩余额度',47)
-steps=[('本机登录','自己的工具与会话','不共享作者账号'),('内置读取引擎','固定版本 · 官方来源','SHA-256 校验'),('真实字段适配','区分模型、周期和积分','不混用独立额度'),('横向中文卡片','剩余额度与恢复时间','失败标记旧数据')]
-for i,(a,b,c) in enumerate(steps):
- x=60+i*385
- d.rounded_rectangle((x,238,x+348,486),radius=22,fill='white',outline='#DED9D6',width=2)
- text(d,(x+22,262),f'STEP 0{i+1}',21,RED);text(d,(x+22,307),a,33);text(d,(x+22,365),b,22,MUTED)
- d.rounded_rectangle((x+20,421,x+328,465),radius=10,fill=RED);text(d,(x+32,431),c,20,'white')
- if i<3:text(d,(x+352,335),'→',25,RED)
-d.rounded_rectangle((60,534,1540,626),radius=18,fill=INK)
-text(d,(86,553),'本地个人看板 · 无汇芯账号体系 · 不上传作者账号 · 保留上游 MIT 与来源',25,'white')
-text(d,(86,590),'支持 Apple 芯片 Mac / macOS 14+；Windows 与 Intel Mac 暂不支持。',19,'#D0C8CA')
-im.save(OUT/'pipeline-architecture.jpg',quality=94)
-print('Rendered 1600×700 and 1600×680')
+import subprocess
+import tempfile
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "assets" / "showcase"
+DEMO_PNG = OUT / "01-app-demo.png"
+CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+HTML = f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  html, body {{
+    width: 1600px;
+    height: 700px;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #FAF8F6 0%, #F4EFEA 55%, #F0E9E4 100%);
+    color: #18181B;
+    position: relative;
+  }}
+  .glow-red {{
+    position: absolute;
+    right: -120px;
+    top: -140px;
+    width: 780px;
+    height: 780px;
+    background: radial-gradient(circle, rgba(200,16,46,0.085) 0%, rgba(200,16,46,0) 68%);
+    pointer-events: none;
+  }}
+  .glow-warm {{
+    position: absolute;
+    left: -100px;
+    bottom: -140px;
+    width: 560px;
+    height: 560px;
+    background: radial-gradient(circle, rgba(24,24,27,0.04) 0%, rgba(24,24,27,0) 70%);
+    pointer-events: none;
+  }}
+  .container {{
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 628px;
+    padding: 44px 56px 28px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 44px;
+  }}
+  .left {{
+    width: 720px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }}
+  .badge {{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    background: #C8102E;
+    color: #FFFFFF;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 999px;
+    letter-spacing: 0.3px;
+    box-shadow: 0 6px 16px rgba(200, 16, 46, 0.22);
+  }}
+  .title-row {{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 22px;
+  }}
+  .app-icon {{
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    background: linear-gradient(145deg, #D91434 0%, #B30C27 100%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 7px;
+    padding: 15px 14px;
+    box-shadow: 0 10px 24px rgba(200, 16, 46, 0.28);
+    flex-shrink: 0;
+  }}
+  .bar {{
+    width: 11px;
+    background: #FFFFFF;
+    border-radius: 4px;
+  }}
+  .bar.b1 {{ height: 18px; }}
+  .bar.b2 {{ height: 30px; }}
+  .bar.b3 {{ height: 42px; }}
+  h1 {{
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    color: #141417;
+  }}
+  .subtitle {{
+    margin-top: 14px;
+    font-size: 27px;
+    font-weight: 700;
+    color: #C8102E;
+    line-height: 1.3;
+  }}
+  .desc {{
+    margin-top: 12px;
+    font-size: 18px;
+    line-height: 1.55;
+    color: #52525B;
+    max-width: 680px;
+  }}
+  .cards {{
+    margin-top: 26px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }}
+  .card {{
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #E5DFD9;
+    border-top: 3px solid #C8102E;
+    border-radius: 14px;
+    padding: 14px 14px 13px 14px;
+    box-shadow: 0 4px 14px rgba(24, 24, 27, 0.04);
+  }}
+  .card-num {{
+    font-size: 12px;
+    font-weight: 700;
+    color: #C8102E;
+    letter-spacing: 0.4px;
+  }}
+  .card-title {{
+    margin-top: 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #18181B;
+  }}
+  .card-sub {{
+    margin-top: 5px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: #66666D;
+  }}
+  .pills {{
+    margin-top: 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }}
+  .pill {{
+    background: #18181B;
+    color: #F4F4F5;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 8px 15px;
+    border-radius: 9px;
+  }}
+  .pill-outline {{
+    background: rgba(255, 255, 255, 0.85);
+    color: #3F3F46;
+    border: 1px solid #DCD6D0;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 9px;
+  }}
+  .right {{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+  }}
+  .window {{
+    width: 736px;
+    background: #1C1C20;
+    border-radius: 18px;
+    padding: 10px 10px 10px 10px;
+    box-shadow:
+      0 28px 60px rgba(20, 20, 26, 0.22),
+      0 8px 20px rgba(20, 20, 26, 0.12),
+      0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+  }}
+  .window-bar {{
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 6px 10px;
+  }}
+  .dots {{
+    display: flex;
+    gap: 7px;
+  }}
+  .dot {{
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+  }}
+  .dot.r {{ background: #FF5F56; }}
+  .dot.y {{ background: #FFBD2E; }}
+  .dot.g {{ background: #27C93F; }}
+  .win-title {{
+    font-size: 12.5px;
+    color: #A1A1AA;
+    font-weight: 500;
+  }}
+  .win-tag {{
+    font-size: 11.5px;
+    color: #F4F4F5;
+    background: rgba(200, 16, 46, 0.85);
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-weight: 600;
+  }}
+  .screen-wrap {{
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #FFFFFF;
+  }}
+  .screen-wrap img {{
+    display: block;
+    width: 100%;
+    height: auto;
+  }}
+  .caption {{
+    margin-top: 12px;
+    font-size: 13px;
+    color: #71717A;
+    padding-right: 4px;
+  }}
+  .footer {{
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 72px;
+    background: #18181B;
+    color: #F4F4F5;
+    padding: 0 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 15.5px;
+    z-index: 3;
+  }}
+  .footer-left {{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }}
+  .footer-brand {{
+    color: #FFFFFF;
+    font-weight: 700;
+  }}
+  .footer-sep {{
+    color: #52525B;
+  }}
+  .footer-muted {{
+    color: #D4D4D8;
+    font-size: 14.5px;
+  }}
+  .footer-right {{
+    color: #A1A1AA;
+    font-size: 14px;
+  }}
+</style>
+</head>
+<body>
+  <div class="glow-red"></div>
+  <div class="glow-warm"></div>
+  <div class="container">
+    <div class="left">
+      <div class="badge">汇芯开源工具 · v1.1.0 · Apple Silicon / macOS 14+</div>
+      <div class="title-row">
+        <div class="app-icon">
+          <div class="bar b1"></div>
+          <div class="bar b2"></div>
+          <div class="bar b3"></div>
+        </div>
+        <h1>汇芯 token 管家</h1>
+      </div>
+      <div class="subtitle">只看额度与预测 · 一眼看清三引擎剩余配额</div>
+      <div class="desc">
+        Codex · Antigravity · WorkBuddy 三栏横向看板，独立后台同步与可解释用量预测，不猜、不编造耗尽时间。
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="card-num">01 原创面板</div>
+          <div class="card-title">三栏同屏</div>
+          <div class="card-sub">区分模型周期与可用积分</div>
+        </div>
+        <div class="card">
+          <div class="card-num">02 独立同步</div>
+          <div class="card-title">互不阻塞</div>
+          <div class="card-sub">超时去重与失败退避保护</div>
+        </div>
+        <div class="card">
+          <div class="card-num">03 用量预测</div>
+          <div class="card-title">可解释趋势</div>
+          <div class="card-sub">真实周期与近期消耗</div>
+        </div>
+        <div class="card">
+          <div class="card-num">04 本地隐私</div>
+          <div class="card-title">零账号上传</div>
+          <div class="card-sub">只读本人本机授权会话</div>
+        </div>
+      </div>
+      <div class="pills">
+        <div class="pill">菜单栏常驻 · token</div>
+        <div class="pill">CodexBarCore v0.85.0 (MIT)</div>
+        <div class="pill-outline">无需另装原版 CodexBar</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="window">
+        <div class="window-bar">
+          <div class="dots">
+            <div class="dot r"></div>
+            <div class="dot y"></div>
+            <div class="dot g"></div>
+          </div>
+          <div class="win-title">汇芯 token 管家 — 实时额度看板</div>
+          <div class="win-tag">演示模式</div>
+        </div>
+        <div class="screen-wrap">
+          <img src="{DEMO_PNG.as_uri()}" alt="汇芯 token 管家界面" />
+        </div>
+      </div>
+      <div class="caption">真实应用界面截图（演示数据），支持菜单栏一键唤起与后台静默刷新</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">
+      <span class="footer-brand">袁六伟 · 台州汇芯</span>
+      <span class="footer-sep">|</span>
+      <span class="footer-muted">得到 / 华为分享老师 · 实战学员 7,000+ · 企业商单客户 100+</span>
+    </div>
+    <div class="footer-right">公众号 / 视频号：袁六伟  ·  致敬 Peter Steinberger / CodexBar (MIT)</div>
+  </div>
+</body>
+</html>
+"""
+
+
+def main() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        html_path = td_path / "banner.html"
+        png_path = td_path / "banner.png"
+        html_path.write_text(HTML, encoding="utf-8")
+
+        subprocess.run(
+            [
+                CHROME,
+                "--headless=new",
+                "--disable-gpu",
+                "--hide-scrollbars",
+                "--force-device-scale-factor=2",
+                "--window-size=1600,700",
+                f"--screenshot={png_path}",
+                html_path.as_uri(),
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        im = Image.open(png_path).convert("RGB")
+        if im.size != (1600, 700):
+            im = im.resize((1600, 700), Image.Resampling.LANCZOS)
+        out_path = OUT / "hero-banner.jpg"
+        im.save(out_path, quality=95, subsampling=0)
+        print(f"Saved {out_path} ({im.size[0]}x{im.size[1]})")
+
+
+if __name__ == "__main__":
+    main()
