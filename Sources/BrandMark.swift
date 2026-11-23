@@ -18,4 +18,26 @@ enum BrandMark {
         image.accessibilityDescription = "汇芯 token 管家"
         return image
     }
+
+    static func menuBarImage() -> NSImage {
+        let iconSize: CGFloat = 16
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
+            .foregroundColor: NSColor.labelColor
+        ]
+        let text = "token" as NSString
+        let textSize = text.size(withAttributes: attrs)
+        let spacing: CGFloat = 4
+        let height: CGFloat = 18
+        let width = ceil(iconSize + spacing + textSize.width)
+        let image = NSImage(size: NSSize(width: width, height: height))
+        image.lockFocus()
+        let icon = Self.image(size: iconSize, template: true)
+        icon.draw(in: NSRect(x: 0, y: (height - iconSize) / 2, width: iconSize, height: iconSize))
+        text.draw(at: NSPoint(x: iconSize + spacing, y: (height - textSize.height) / 2), withAttributes: attrs)
+        image.unlockFocus()
+        image.isTemplate = true
+        image.accessibilityDescription = "汇芯 token 管家"
+        return image
+    }
 }

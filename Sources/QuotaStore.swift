@@ -41,7 +41,12 @@ import Network
         if wakeObserver == nil {
             wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
                 forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
-            ) { [weak self] _ in Task { @MainActor in self?.refresh(force: true) } }
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 2_500_000_000)
+                    self?.refresh(force: true)
+                }
+            }
             networkMonitor.pathUpdateHandler = { [weak self] path in
                 let available = path.status == .satisfied
                 Task { @MainActor in
@@ -66,9 +71,9 @@ import Network
     func manualRefresh() {
         guard !CommandLine.arguments.contains("--demo") else { return }
         for provider in providers where !loading.contains(provider.id) {
-            // Manual action may retry a native login; WorkBuddy has a separate explicit Connect action.
-            if blocked.contains(provider.id) && provider.id == "workbuddy" { continue }
-            launch(provider.id, connect: blocked.contains(provider.id))
+            // Manual refresh retries native providers and quietly re-checks cached WorkBuddy sessions without prompting.
+            let shouldConnect = blocked.contains(provider.id) && provider.id != "workbuddy"
+            launch(provider.id, connect: shouldConnect)
         }
     }
     func connect(_ id: String) {

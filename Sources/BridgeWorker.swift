@@ -34,7 +34,7 @@ final class BridgeWorker {
         guard requestLock.try() else { return FetchResult(data: nil, error: "该服务正在同步") }
         defer { requestLock.unlock() }
         let started = Date()
-        let timeout: TimeInterval = connect ? 120 : (provider == "codex" ? 12 : 20)
+        let timeout: TimeInterval = connect ? 120 : (provider == "codex" ? 12 : (provider == "workbuddy" ? 40 : 20))
         do {
             let (child, input, output) = try start()
             var data = try JSONSerialization.data(withJSONObject: ["provider": provider, "connect": connect])
@@ -64,7 +64,7 @@ final class BridgeWorker {
             if let response = (try? JSONSerialization.jsonObject(with: line)) as? [[String: Any]],
                let error = response.first?["error"] as? String {
                 let lower = error.lowercased()
-                let needsConnection = ["keychain", "cookie", "session", "unauthorized", "401", "log in", "login", "auth"].contains { lower.contains($0) }
+                let needsConnection = ["keychain", "cookie", "session", "unauthorized", "401", "log in", "login", "authentication"].contains { lower.contains($0) }
                 let message = provider == "workbuddy" && needsConnection
                     ? "需要连接 Chrome 中已登录的 WorkBuddy"
                     : needsConnection ? "请在原工具中重新登录" : "服务暂时不可用，稍后自动重试"

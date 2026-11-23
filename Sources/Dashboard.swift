@@ -19,7 +19,7 @@ struct Dashboard: View {
                     .disabled(CommandLine.arguments.contains("--demo")).controlSize(.small)
                 Menu {
                     Button("连接与来源") { details = true }
-                    Button("打开独立窗口") { (NSApp.delegate as? AppDelegate)?.showWindow() }
+                    Button("打开独立窗口") { AppWindowHelper.shared.showWindow(store: store) }
                     Divider()
                     Button("退出汇芯 token 管家") { NSApp.terminate(nil) }
                 } label: { Image(systemName: "ellipsis") }.menuStyle(.borderlessButton).frame(width: 22)

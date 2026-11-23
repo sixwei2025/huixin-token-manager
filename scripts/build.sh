@@ -12,7 +12,7 @@ mkdir -p "$APP/Contents/Helpers"
 ditto "$BRIDGE_BIN/CodexBar_CodexBarCore.bundle" "$APP/Contents/Helpers/CodexBar_CodexBarCore.bundle"
 cp "$BRIDGE_BIN/HuixinQuotaBridge" "$APP/Contents/Helpers/"
 
-xcrun swiftc -O -swift-version 5 -target arm64-apple-macosx14.0 "$ROOT"/Sources/*.swift -o "$APP/Contents/MacOS/HuixinQuotaManager" -framework AppKit -framework SwiftUI -framework Network
+xcrun swiftc -O -parse-as-library -swift-version 5 -target arm64-apple-macosx14.0 "$ROOT"/Sources/*.swift -o "$APP/Contents/MacOS/HuixinQuotaManager" -framework AppKit -framework SwiftUI -framework Network
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -22,7 +22,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
 <key>CFBundleSupportedPlatforms</key><array><string>MacOSX</string></array>
 <key>NSPrincipalClass</key><string>NSApplication</string>
-<key>CFBundleIdentifier</key><string>cn.huixin.tokenmanager.menu</string>
+<key>CFBundleIdentifier</key><string>cn.huixin.tokenmanager.bar</string>
 <key>CFBundleName</key><string>汇芯 token 管家</string>
 <key>CFBundleDisplayName</key><string>汇芯 token 管家</string>
 <key>CFBundleExecutable</key><string>HuixinQuotaManager</string>
@@ -46,9 +46,15 @@ for size in 16 32 128 256 512; do
     sips -z "$double" "$double" "$ROOT/build/icon.png" --out "$ICONSET/icon_${size}x${size}@2x.png" >/dev/null
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
-codesign --force --sign - "$APP/Contents/Helpers/CodexBar_CodexBarCore.bundle"
-codesign --force --sign - "$APP/Contents/Helpers/HuixinQuotaBridge"
-codesign --force --sign - "$APP"
+SIGN_ID="${HUIXIN_CODESIGN_IDENTITY:--}"
+if [[ "$SIGN_ID" == "auto" ]]; then
+    DETECTED_ID="$(security find-identity -v -p codesigning 2>/dev/null | sed -n 's/.*"\(Apple Development: [^"]*\)".*/\1/p' | head -n 1 || true)"
+    SIGN_ID="${DETECTED_ID:--}"
+fi
+echo "Signing with identity: $SIGN_ID"
+codesign --force --sign "$SIGN_ID" "$APP/Contents/Helpers/CodexBar_CodexBarCore.bundle"
+codesign --force --sign "$SIGN_ID" "$APP/Contents/Helpers/HuixinQuotaBridge"
+codesign --force --sign "$SIGN_ID" "$APP"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$APP/Contents/Info.plist")" == APPL ]]
 codesign --verify --strict "$APP"
 printf '%s\n' '{"provider":"unsupported","connect":false}' '{"provider":"unsupported","connect":false}' | "$APP/Contents/Helpers/HuixinQuotaBridge" > "$ROOT/build/bridge-protocol-test.jsonl"
