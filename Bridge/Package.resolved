@@ -1,12 +1,12 @@
 {
-  "originHash" : "7258efe1072ca1f6b6bc8bbcef2767c3ac34cab61b25cf36c4de97dd8701535a",
+  "originHash" : "b8a83834195b3fa090086b1a24a34cdc51e40c7d496e121bb0c5f509061fcbd9",
   "pins" : [
     {
       "identity" : "codexbar",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/steipete/CodexBar.git",
       "state" : {
-        "revision" : "5bebf9a05e68059eae11d5031c7239f1aa1d49ef"
+        "revision" : "5dd48cab770a326691b25a124d37ffee12c5f7ac"
       }
     },
     {
@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/steipete/Commander",
       "state" : {
-        "revision" : "3f5a3cb1f19ce7ca79fdc2111a09dfb3da200c1c",
-        "version" : "0.3.0"
+        "revision" : "e8572b84fae01c250d2d54396825a1adf052cb51",
+        "version" : "0.3.1"
       }
     },
     {
@@ -59,8 +59,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
       "state" : {
-        "revision" : "f8fad2f95ad67b45f6340c0960e2396094d67e07",
-        "version" : "5.1.1"
+        "revision" : "3280a5f72874d2f73bf25551bbb64f524c76d834",
+        "version" : "5.1.2"
       }
     },
     {
@@ -68,8 +68,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-log",
       "state" : {
-        "revision" : "e3da04078777e6a1b72ce19981fbd6539b0847d8",
-        "version" : "1.17.0"
+        "revision" : "c7413d967b97aae67c46452bf7645bdb7b200e8e",
+        "version" : "1.17.2"
       }
     },
     {

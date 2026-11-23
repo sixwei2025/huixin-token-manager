@@ -7,7 +7,7 @@ import subprocess
 root = Path(__file__).resolve().parents[1]
 checkout = root / 'Bridge/.build/checkouts/CodexBar'
 revision = subprocess.check_output(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], text=True).strip()
-assert revision == '5bebf9a05e68059eae11d5031c7239f1aa1d49ef', 'Unexpected engine revision'
+assert revision == '5dd48cab770a326691b25a124d37ffee12c5f7ac', 'Unexpected engine revision'
 path = checkout / 'Sources/CodexBarCore/BrowserCookieAccessGate.swift'
 source = path.read_text()
 anchor = '    static func withAccessFailureObserver<T>('

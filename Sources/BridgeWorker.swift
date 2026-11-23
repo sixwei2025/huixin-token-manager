@@ -1,79 +1,86 @@
 import Foundation
 
-/// The upstream engine keeps cookie sessions in memory for ad-hoc apps. Both Connect and Usage
-/// therefore share this owned process; no cookies are exported to files, argv or application logs.
+/// Each provider owns its process and in-memory sessions. A slow browser or network never blocks another provider.
 final class BridgeWorker {
-    static let shared = BridgeWorker()
-    private let lock = NSLock()
+    private static let workers: [String: BridgeWorker] = Dictionary(uniqueKeysWithValues:
+        ["codex", "antigravity", "workbuddy"].map { ($0, BridgeWorker()) })
+    private let requestLock = NSLock()
+    private let processLock = NSLock()
     private var process: Process?
     private var input: FileHandle?
     private var output: FileHandle?
 
-    private func start() throws {
-        if process?.isRunning == true { return }
+    static func request(provider: String, connect: Bool) -> FetchResult {
+        guard let worker = workers[provider] else { return FetchResult(data: nil, error: "不支持的服务") }
+        return worker.request(provider: provider, connect: connect)
+    }
+    static func shutdownAll() { workers.values.forEach { $0.shutdown() } }
+    private func start() throws -> (Process, FileHandle, FileHandle) {
+        processLock.lock(); defer { processLock.unlock() }
+        if let process, process.isRunning, let input, let output { return (process, input, output) }
         let child = Process()
         child.executableURL = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/HuixinQuotaBridge")
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + (env["PATH"] ?? "")
         child.environment = env
         let stdin = Pipe(), stdout = Pipe()
-        child.standardInput = stdin
-        child.standardOutput = stdout
+        child.standardInput = stdin; child.standardOutput = stdout
         child.standardError = FileHandle.nullDevice
         try child.run()
-        process = child
-        input = stdin.fileHandleForWriting
-        output = stdout.fileHandleForReading
+        process = child; input = stdin.fileHandleForWriting; output = stdout.fileHandleForReading
+        return (child, stdin.fileHandleForWriting, stdout.fileHandleForReading)
     }
-    func request(provider: String, connect: Bool) -> FetchResult {
-        lock.lock()
-        defer { lock.unlock() }
+    private func request(provider: String, connect: Bool) -> FetchResult {
+        guard requestLock.try() else { return FetchResult(data: nil, error: "该服务正在同步") }
+        defer { requestLock.unlock() }
+        let started = Date()
+        let timeout: TimeInterval = connect ? 120 : (provider == "codex" ? 12 : 20)
         do {
-            try start()
-            guard let child = process, let input, let output else { throw CocoaError(.fileReadUnknown) }
+            let (child, input, output) = try start()
             var data = try JSONSerialization.data(withJSONObject: ["provider": provider, "connect": connect])
             data.append(10)
-            let timeout: TimeInterval = connect ? 120 : 48
             let terminate = DispatchWorkItem { if child.isRunning { child.terminate() } }
             let kill = DispatchWorkItem { if child.isRunning { Darwin.kill(child.processIdentifier, SIGKILL) } }
             DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: terminate)
-            DispatchQueue.global().asyncAfter(deadline: .now() + timeout + 3, execute: kill)
+            DispatchQueue.global().asyncAfter(deadline: .now() + timeout + 1, execute: kill)
             defer { terminate.cancel(); kill.cancel() }
             try input.write(contentsOf: data)
             var line = Data()
-            while let byte = try output.read(upToCount: 1), !byte.isEmpty {
-                if byte[0] == 10 { break }
-                line.append(byte)
+            var buffer = [UInt8](repeating: 0, count: 4096)
+            while true {
+                // POSIX read returns available pipe bytes immediately; FileHandle.read(upToCount:)
+                // may wait for the requested count even after a complete JSON line has arrived.
+                let count = buffer.withUnsafeMutableBytes { Darwin.read(output.fileDescriptor, $0.baseAddress, $0.count) }
+                if count < 0 {
+                    if errno == EINTR { continue }
+                    throw CocoaError(.fileReadUnknown)
+                }
+                if count == 0 { break }
+                line.append(contentsOf: buffer.prefix(count))
+                if let end = line.firstIndex(of: 10) { line = line.prefix(upTo: end); break }
                 if line.count > 4 * 1024 * 1024 { throw CocoaError(.fileReadTooLarge) }
             }
             guard !line.isEmpty else { throw CocoaError(.fileReadUnknown) }
             if let response = (try? JSONSerialization.jsonObject(with: line)) as? [[String: Any]],
                let error = response.first?["error"] as? String {
-                if CommandLine.arguments.contains("--diagnostics") {
-                    let safe = error.replacingOccurrences(of: #"[\w.+-]+@[\w.-]+"#, with: "[email]", options: .regularExpression)
-                    print("Browser result \(provider) connect=\(connect) error=\(safe.prefix(400))")
-                    fflush(stdout)
-                }
                 let lower = error.lowercased()
-                let message: String
-                if lower.contains("keychain") || lower.contains("cookie") || lower.contains("session") {
-                    message = "需要连接浏览器，请点“连接与来源”"
-                } else { message = "读取失败，请确认网页登录后重试连接" }
-                return FetchResult(data: nil, error: message)
+                let needsConnection = ["keychain", "cookie", "session", "unauthorized", "401", "log in", "login", "auth"].contains { lower.contains($0) }
+                let message = provider == "workbuddy" && needsConnection
+                    ? "需要连接 Chrome 中已登录的 WorkBuddy"
+                    : needsConnection ? "请在原工具中重新登录" : "服务暂时不可用，稍后自动重试"
+                return FetchResult(data: nil, error: message, needsConnection: needsConnection)
             }
-            if CommandLine.arguments.contains("--diagnostics") { print("Browser result \(provider) connect=\(connect) success"); fflush(stdout) }
             return FetchResult(data: line, error: nil)
         } catch {
-            if process?.isRunning == true { process?.terminate() }
-            process = nil
-            input = nil; output = nil
-            return FetchResult(data: nil, error: "浏览器读取进程未就绪，请重新连接")
+            shutdown()
+            let timedOut = Date().timeIntervalSince(started) >= timeout - 0.5
+            return FetchResult(data: nil, error: timedOut ? "本次同步超时，保留上次数据并稍后重试" : "读取进程已重置，稍后自动重试")
         }
     }
-    func shutdown() {
-        lock.lock(); defer { lock.unlock() }
+    private func shutdown() {
+        processLock.lock(); defer { processLock.unlock() }
+        if let process, process.isRunning { Darwin.kill(process.processIdentifier, SIGKILL) }
         try? input?.close()
-        if process?.isRunning == true { process?.terminate() }
         process = nil; input = nil; output = nil
     }
 }

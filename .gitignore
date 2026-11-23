@@ -4,3 +4,6 @@ vendor/
 *.dSYM/
 Bridge/.build/
 Bridge/.swiftpm/
+
+# Local workstation handoff notes
+制作状态.md
