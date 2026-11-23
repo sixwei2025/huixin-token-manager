@@ -126,10 +126,10 @@ struct ProviderPanel: View {
             if connecting {
                 Text("等待本人完成系统授权…").font(.system(size: 10)).foregroundStyle(.secondary)
             } else if blocked && card.id == "workbuddy" {
-                HStack {
-                    Button("连接 WorkBuddy", action: connect).controlSize(.small).disabled(loading)
+                HStack(spacing: 8) {
+                    Text("会话未连接").font(.system(size: 10)).foregroundStyle(.orange)
                     Spacer()
-                    Link("登录", destination: URL(string: "https://www.workbuddy.cn/profile/plans-usage")!).font(.system(size: 10))
+                    Button("连接 WorkBuddy", action: connect).controlSize(.small).disabled(loading)
                 }
             } else {
                 HStack {
