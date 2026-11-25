@@ -26,8 +26,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>汇芯 token 管家</string>
 <key>CFBundleDisplayName</key><string>汇芯 token 管家</string>
 <key>CFBundleExecutable</key><string>HuixinQuotaManager</string>
-<key>CFBundleShortVersionString</key><string>1.1.2</string>
-<key>CFBundleVersion</key><string>8</string>
+<key>CFBundleShortVersionString</key><string>1.1.3</string>
+<key>CFBundleVersion</key><string>9</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>
 <key>LSMultipleInstancesProhibited</key><true/>
@@ -71,5 +71,5 @@ PYTEST
 "$APP/Contents/MacOS/HuixinQuotaManager" --self-test "$ROOT/Tests/fixtures"
 xcrun swiftc -O -swift-version 5 "$ROOT/Sources/Quota.swift" "$ROOT/Sources/Forecast.swift" "$ROOT/Sources/RefreshPolicy.swift" "$ROOT/Sources/BridgeWorker.swift" "$ROOT/Tests/Runtime/PolicyForecastTests.swift" -o "$ROOT/build/policy-forecast-tests"
 "$ROOT/build/policy-forecast-tests"
-python3 "$ROOT/scripts/package-app.py" "$APP" "$ROOT/build/huixin-token-manager-v1.1.2-macos-arm64.zip"
+python3 "$ROOT/scripts/package-app.py" "$APP" "$ROOT/build/huixin-token-manager-v1.1.3-macos-arm64.zip"
 echo "$APP"

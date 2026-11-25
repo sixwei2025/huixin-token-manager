@@ -5,7 +5,7 @@
 
 **额度可视化 · 用量预测 · 自动同步**
 
-当前版本：`v1.1.2` · 2026-11-24 · Apple Silicon / macOS 14+
+当前版本：`v1.1.3` · 2026-11-25 · Apple Silicon / macOS 14+
 
 [下载安装包](https://github.com/sixwei2025/huixin-token-manager/releases/latest) · [更新记录](CHANGELOG.md) · [MIT 许可](LICENSE)
 
@@ -33,7 +33,7 @@ https://github.com/sixwei2025/huixin-token-manager
 
 <img src="assets/showcase/01-app-demo.png" alt="原创三栏面板，明确标记演示数据" width="100%" />
 
-截图使用本应用演示模式，展示数值不代表任何真实账号。应用图标、页面图标与菜单栏采用同一套三柱标识。右上角菜单栏入口为 **token**，提示名称为 **汇芯 token 管家**。
+截图使用本应用演示模式，展示数值不代表任何真实账号。应用图标、页面图标与菜单栏采用同一套三柱标识。右上角菜单栏仅显示三柱图标，提示名称为 **汇芯 token 管家**。
 
 手动更新只保留右上角一个按钮，卡片内不重复放刷新按钮。菜单栏有启动位置自检，避免更新后按钮脱离可见区域。
 
@@ -41,7 +41,7 @@ https://github.com/sixwei2025/huixin-token-manager
 
 1. 下载 [最新 Release](https://github.com/sixwei2025/huixin-token-manager/releases/latest) 的 `macos-arm64.zip`。
 2. 解压，将“汇芯 token 管家.app”放入“应用程序”，替换旧版并重新打开。
-3. 点击右上角菜单栏的柱状图 **token**。面板关闭后继续后台同步。
+3. 点击右上角菜单栏的三柱图标。面板关闭后继续后台同步。
 4. 如果 macOS 26 隐藏图标：系统设置 → 菜单栏 → 允许在菜单栏显示 → 打开“汇芯 token 管家”。
 
 支持 Apple Silicon Mac、macOS 14 及以上；暂不提供 Windows、Intel Mac、Linux 安装包。应用使用本地临时签名，尚未 Apple 开发者签名与公证；按 macOS 正常安全流程打开，不关闭系统安全保护。无需安装原版 CodexBar。
